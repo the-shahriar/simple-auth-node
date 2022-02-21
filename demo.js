@@ -4,23 +4,11 @@ const dotenv = require('dotenv');
 dotenv.config();
 const jwt = require("jsonwebtoken");
 const cookieParser = require('cookie-parser')
-const session = require('express-session');
 
 app.use(express.json());
 app.use(
     express.urlencoded({
         extended: true,
-    })
-);
-app.use(
-    session({
-        name: 'SESSION_ID', 
-        secret: process.env.JWT_SECRET,
-        cookie: {
-            maxAge: 0.5 * 86400000,
-        },
-        resave: false,
-        saveUninitialized: true
     })
 );
 
@@ -32,7 +20,7 @@ const port = process.env.PORT
 
 
 
-app.post('/api/auth2/login', (req, res)=> {
+app.post('/api/auth/login', (req, res)=> {
     // pre-defined user
     const user = {
         username: 'shahriar',
@@ -53,8 +41,8 @@ app.post('/api/auth2/login', (req, res)=> {
             }
         );
 
-        req.session.token = token;
-        res.json({sucess: result, userId: user.username});
+        res.cookie('Auth_Token', token);
+        res.status(200).json({success: result, token});
 
     }
     else{
@@ -63,27 +51,24 @@ app.post('/api/auth2/login', (req, res)=> {
 })
 
 
-app.get('/api/auth2/user', async(req, res, next)=> {
+app.get('/api/user', (req, res)=> {
     // pre defined user
-    try{
-        const user = {
-            username: 'shahriar',
-            role: "admin"
-        }
-    
-        const token = req.session.token;
-        console.log(token);
-    
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        if(decoded){
-            res.status(200).json({user: user})
-        }
-        else{
-            res.status(403).json({message: "User loggedout"})
-        }
+    const user = {
+        username: 'shahriar',
+        role: "admin"
     }
-    catch{
-        next()
+
+    const {token} = req.headers;
+    const splitedToken = token.split(' ')[1];
+    
+    const decoded = jwt.verify(splitedToken, process.env.JWT_SECRET)
+
+    if(decoded && req.cookies){
+        const cookie = req.cookies;
+        res.status(200).json({token: "verified", user: user, cookie: cookie})
+    }
+    else{
+        res.status(403).send('Token not verified');
     }
 })
 
