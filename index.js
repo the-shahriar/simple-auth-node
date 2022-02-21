@@ -53,8 +53,8 @@ app.post('/api/auth2/login', (req, res)=> {
             }
         );
 
-        req.session.token = token;
-        res.json({sucess: result, userId: user.username});
+        req.session.userId = user.username;
+        res.json({sucess: result, token: token});
 
     }
     else{
@@ -71,11 +71,11 @@ app.get('/api/auth2/user', async(req, res, next)=> {
             role: "admin"
         }
     
-        const token = req.session.token;
-        console.log(token);
+        const userId = req.session.userId;
+        const token = req.headers.token;
     
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        if(decoded){
+        if(decoded && userId){
             res.status(200).json({user: user})
         }
         else{
@@ -84,6 +84,16 @@ app.get('/api/auth2/user', async(req, res, next)=> {
     }
     catch{
         next()
+    }
+})
+
+app.get('/api/logout', (req, res)=> {
+    if(req.session.userId && req.headers.token){
+        delete req.session.userId;
+        res.json({result: 'SUCCESS'});
+    }
+    else{
+        res.json({result: 'ERROR', message: 'User already logged out'});
     }
 })
 
